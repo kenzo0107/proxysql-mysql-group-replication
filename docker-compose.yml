@@ -1,0 +1,50 @@
+version: '3'
+
+services:
+  proxysql:
+    image: severalnines/proxysql
+    volumes:
+      - ./proxysql.cnf:/etc/proxysql.cnf
+    ports:
+      - '6032:6032'
+      - '6033:6033'
+    links:
+      - db-primary
+      - db-secondary
+
+  db-primary:
+    build:
+      context: .
+      dockerfile: db/primary/Dockerfile
+    # image: mysql:5.7
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./db/init/:/docker-entrypoint-initdb.d/
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+      MYSQL_DATABASE: hoge
+      MYSQL_USER: proxysql
+      MYSQL_PASSWORD: pass
+      TZ: "Asia/Tokyo"
+
+  db-secondary:
+    build:
+      context: .
+      dockerfile: db/secondary/Dockerfile
+    ports:
+      - '13306:3306'
+    depends_on:
+      - db-primary
+    tmpfs: /var/lib/mysql
+    volumes:
+      - ./db/secondary/start-secondary.sh:/docker-entrypoint-initdb.d/start-secondary.sh
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+      MYSQL_USER: proxysql
+      MYSQL_PASSWORD: pass
+      TZ: "Asia/Tokyo"
+
+volumes:
+  db-data: {}
