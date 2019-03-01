@@ -1,0 +1,110 @@
+datadir="/var/lib/proxysql"
+
+admin_variables=
+{
+  admin_credentials="admin:admin"
+  mysql_ifaces="0.0.0.0:6032"
+  refresh_interval=2000
+}
+
+mysql_variables=
+{
+  # The number of background threads that ProxySQL uses in order to process MySQL traffic.
+  threads=10
+
+  # The maximum number of client connections that the proxy can handle.
+  max_connections=2048
+
+
+  default_query_delay=0
+
+  # (milliseconds) Mechanism for specifying the maximal duration of queries to the backend MySQL servers until ProxySQL should return an error to the MySQL client.
+  default_query_timeout=36000000
+
+  have_compress=true
+
+  # (milliseconds) The minimal timeout used by the proxy in order to detect incoming/outgoing traffic via the poll() system call.
+  poll_timeout=2000
+
+  interfaces="0.0.0.0:6033;/tmp/proxysql.sock"
+  default_schema="information_schema"
+
+  # (bytes) The stack size to be used with the background threads that the proxy uses to handle MySQL traffic and connect to the backends. Note that changing this value has no effect at runtime, if you need to change it you have to restart the proxy.
+  stacksize=1048576
+
+  # The server version with which the proxy will respond to the clients. Note that regardless of the versions of the backend servers, the proxy will respond with this.
+  server_version="5.7.12"
+
+  # (milliseconds) The timeout for a single attempt at connecting to a backend server from the proxy.
+  connect_timeout_server=10000
+
+  # (milliseconds) The duration for which the events for the checks made by the Monitor module are kept.
+  monitor_history=60000
+
+  # (milliseconds) The interval at which the Monitor module of the proxy will try to connect to all the MySQL servers in order to check whether they are available or not.
+  monitor_connect_interval=200000
+
+  # (milliseconds) The interval at which the Monitor module should ping the backend servers by using the mysql_ping API.
+  monitor_ping_interval=200000
+
+  # (milliseconds) The interval at which the proxy should ping backend connections in order to maintain them alive, even though there is no outgoing traffic.
+  ping_interval_server_msec=10000
+
+  # (milliseconds) The proxy internally pings the connections it has opened in order to keep them alive.
+  ping_timeout_server=200
+
+  # Enable per-command MySQL query statistics.
+  commands_stats=true
+
+  # Sessions are conversations between a MySQL client and a backend server in the proxy.
+  sessions_sort=true
+
+  monitor_username="proxysql"
+  monitor_password="pass"
+}
+
+mysql_replication_hostgroups =
+(
+  {
+    writer_hostgroup=0
+    reader_hostgroup=1
+    comment="host groups"
+  }
+)
+
+mysql_servers =
+(
+  { address="db-primary",   port=3306, hostgroup=0, max_connections=1000, max_replication_lag = 5 },
+  { address="db-secondary", port=3306, hostgroup=1, max_connections=1000, max_replication_lag = 5 }
+)
+
+# MySQL へ Proxy 経由で接続するユーザ記載
+mysql_users =
+(
+  { username = "proxysql", password = "pass",   default_hostgroup = 0, max_connections=1000, active = 1 }
+)
+
+mysql_query_rules =
+(
+  {
+    rule_id=1
+    active=1
+    match_pattern="^SELECT .* FOR UPDATE"
+    destination_hostgroup=0
+    apply=1
+  },
+  {
+    rule_id=2
+    active=1
+    match_pattern="^SELECT .*"
+    destination_hostgroup=1
+    apply=1
+  },
+  {
+    rule_id=3
+    active=1
+    match_pattern=".*"
+    destination_hostgroup=0
+    apply=1
+  }
+)

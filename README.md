@@ -136,3 +136,5 @@ ProxySQL> SELECT * FROM mysql_replication_hostgroups;
 ## Reference
 
 https://proxysql.com/
+
+https://github.com/sysown/proxysql/wiki/Global-variables
